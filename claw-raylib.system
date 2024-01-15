@@ -12,16 +12,50 @@
   (merge-pathnames "Github/Authors/bohonghuang/claw-raylib/" (translate-logical-pathname "EXTERN:")))
 (defvar *claw-raylib-binary-dir* (binary-directory *claw-raylib-source-dir*))
 
-;;;
+;; define some directory paths used for bindings
+(mk:defsystem :claw-raylib/config-madhu
+  :source-pathname *claw-raylib-source-dir*
+  :binary-pathname *claw-raylib-binary-dir*
+  :source-extension "lisp"
+  :components ((:file "config-madhu")))
+
+;; define mk-defsystem definitions for bindings
+(mk:defsystem :claw-raylib/defsys
+  :source-pathname *claw-raylib-source-dir*
+  :binary-pathname *claw-raylib-binary-dir*
+  :source-extension "lisp"
+  :depends-on (#:alexandria
+	       #:cffi
+	       #:claw-cxx
+	       #:claw-raylib/config-madhu)
+  :components ((:file "claw-raylib-defsys")))
+
+#||
+;; claw-raylib/gen defines the mk-defsystem  programatically.
+(cffi:load-foreign-library (merge-pathnames "libraylib.so"
+					    *claw-raylib-lib*))
+(cffi:load-foreign-library (merge-pathnames "raygui.so"
+					    *claw-raylib-lib*))
+
+(mk:oos 'claw-raylib.raylib :load :compile-during-load t)
+(mk:oos 'claw-raylib.rlgl :load :compile-during-load t)
+(mk:oos 'claw-raylib.raygui :load :compile-during-load t)
+||#
+
+
+;;; define wrappers (& mk-defsystem definitions)
 (mk:defsystem :claw-raylib/gen
   :source-pathname *claw-raylib-source-dir*
   :binary-pathname *claw-raylib-binary-dir*
   :source-extension "lisp"
-  :depends-on (#:alexandria #:cffi #:claw-cxx)
+  :depends-on (#:alexandria
+	       #:cffi #:claw-cxx
+	       #:claw-raylib/config-madhu)
   :components ((:file "claw")))
 
 #+nil
 (mk:oos :claw-raylib/gen :load :compile-during-load t)
+
 
 ;;;
 (require 'trivial-features)
@@ -46,7 +80,7 @@
 			    #:claw-raylib.raylib
 			    #:claw-raylib.raygui
 			    #:claw-raylib.rlgl
-			    )
+			    #:claw-raylib/config-madhu)
   :components ((:file "library")))
 
 #+nil

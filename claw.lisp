@@ -1,6 +1,9 @@
+(in-package "CL-USER")
+
 (claw:defwrapper
     (:raylib
      (:headers "raylib.h" "raymath.h" "rcamera.h")
+     (:includes #.*claw-raylib-inc*)
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
                ((:and :x86 :linux) "i686-pc-linux-gnu")
                ((:and :arm64 :linux) "aarch64-linux-gnu")
@@ -10,9 +13,18 @@
                ((:and :x86 :darwin) "i686-apple-darwin")
                ((:and :arm64 :darwin) "aarch64-apple-darwin"))
      (:persistent #:claw-raylib.raylib
-      :asd-path #.(merge-pathnames "claw-raylib.raylib.asd"
-                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib)))
-      :bindings-path #.(merge-pathnames "raylib/" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+      :asd-path
+      #.(merge-pathnames "claw-raylib.raylib.asd"
+			 #+asdf
+                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+				   #-asdf
+				   *claw-raylib-dir*)
+      :bindings-path #.(merge-pathnames "raylib/"
+					#+asdf
+ (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+ #-asdf
+ *claw-raylib-dir*
+ ))
      (:include-definitions ".*")
      (:exclude-definitions "^gamma$" "^gammaf$" "^gammal$"
                            "^lgamma$" "^lgammaf$" "^lgammal$"
@@ -37,7 +49,12 @@
   :recognize-bitfields t
   :recognize-strings t
   :recognize-arrays t
-  :with-adapter (:dynamic :path #.(merge-pathnames "lib/libraylib-adapter.c" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+  :with-adapter (:dynamic :path #.(merge-pathnames "lib/libraylib-adapter.c"
+						   #+asdf
+ (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+ #-asdf
+ *claw-raylib-dir*
+ ))
   :symbolicate-names (:in-pipeline
                       (:by-replacing "(Vector[2-4])([A-Z])" "\\1-\\2")
                       (:by-replacing "([a-z])([2-4]D)$" "\\1-\\2")
@@ -46,6 +63,7 @@
 
 (claw:defwrapper
     (:rlgl
+     (:includes #.*claw-raylib-inc*)
      (:headers "rlgl.h")
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
                ((:and :x86 :linux) "i686-pc-linux-gnu")
@@ -57,8 +75,15 @@
                ((:and :arm64 :darwin) "aarch64-apple-darwin"))
      (:persistent #:claw-raylib.rlgl
       :asd-path #.(merge-pathnames "claw-raylib.rlgl.asd"
-                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib)))
-      :bindings-path #.(merge-pathnames "rlgl/" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+				   #+asdf
+                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+				   #-asdf
+				   *claw-raylib-dir*)
+      :bindings-path #.(merge-pathnames "rlgl/"
+					#+asdf
+					(asdf:component-pathname (asdf:find-system '#:claw-raylib))
+					#-asdf
+					*claw-raylib-dir*))
      (:include-definitions ".*")
      (:exclude-definitions "_t$" "^__(?!claw)"))
   :in-package :rlgl
@@ -66,13 +91,17 @@
   :recognize-bitfields t
   :recognize-strings t
   :recognize-arrays t
-  :with-adapter (:dynamic :path #.(merge-pathnames "lib/librlgl-adapter.c" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+  :with-adapter (:dynamic :path #.(merge-pathnames "lib/librlgl-adapter.c"
+						   #+asdf
+(asdf:component-pathname (asdf:find-system '#:claw-raylib))
+#-asdf *claw-raylib-dir*))
   :symbolicate-names (:in-pipeline (:by-removing-prefixes "rl" "RL_")))
 
 (claw:defwrapper
     (:raygui
      (:headers "raygui.h")
      (:defines "RAYGUI_IMPLEMENTATION" 1)
+     (:includes #.*claw-raylib-inc*)
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
                ((:and :x86 :linux) "i686-pc-linux-gnu")
                ((:and :arm64 :linux) "aarch64-linux-gnu")
@@ -83,8 +112,15 @@
                ((:and :arm64 :darwin) "aarch64-apple-darwin"))
      (:persistent #:claw-raylib.raygui
       :asd-path #.(merge-pathnames "claw-raylib.raygui.asd"
-                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib)))
-      :bindings-path #.(merge-pathnames "raygui/" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+				   #+asdf
+                                   (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+#-asdf
+				   *claw-raylib-dir*)
+      :bindings-path #.(merge-pathnames "raygui/"
+					#+asdf
+					(asdf:component-pathname (asdf:find-system '#:claw-raylib))
+					#-asdf
+				   *claw-raylib-dir*))
      (:include-definitions "^Gui.*")
      (:exclude-definitions "_t$" "^__(?!claw)"))
   :in-package :raygui
@@ -92,7 +128,11 @@
   :recognize-bitfields t
   :recognize-strings t
   :recognize-arrays t
-  :with-adapter (:dynamic :path #.(merge-pathnames "lib/libraygui-adapter.c" (asdf:component-pathname (asdf:find-system '#:claw-raylib))))
+  :with-adapter (:dynamic :path #.(merge-pathnames "lib/libraygui-adapter.c"
+						   #+asdf
+						   (asdf:component-pathname (asdf:find-system '#:claw-raylib))
+						   #-asdf
+						   *claw-raylib-dir*))
   :symbolicate-names (:in-pipeline (:by-removing-prefixes "Gui")))
 
 ;; Delete the generated adapters and run:

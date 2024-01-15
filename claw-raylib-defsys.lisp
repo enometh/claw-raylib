@@ -55,3 +55,16 @@
 (claw-raylib-defsystem "raylib")
 (claw-raylib-defsystem "rlgl")
 (claw-raylib-defsystem "raygui"))
+
+#||
+(mk:oos :claw-raylib.raylib :compile)
+(mk:oos :claw-raylib.rlgl :compile)
+(mk:oos :claw-raylib.raygui :compile)
+
+(mk:oos :claw-raylib.raylib.library :compile)
+(mk:oos :claw-raylib.rlgl.library :compile)
+(mk:oos :claw-raylib.raygui.library :compile)
+
+(mk:oos :claw-raylib.library :load)
+(mk:oos :claw-raylib.raygui :load)
+||#

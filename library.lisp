@@ -60,3 +60,28 @@
       (push :raygui *features*))
   (cffi:load-foreign-library-error ()
     (delete-package '#:raygui)))
+
+
+#||
+mkdir /dev/shm/claw-cxx-raylib/fasl/lib
+
+     (let ((arch "x86_64-pc-linux-gnu")
+           (path (merge-pathnames #P"lib/" cl-user::*claw-raylib-dir*))
+	   (cflags (format nil "-fPIC -O0 -g3 -I~A" cl-user::*claw-raylib-inc*))
+	   (ldflags (format nil "-Wl,-O1 -Wl,--as-needed -L~A" cl-user::*claw-raylib-lib*)))
+       (dolist (lib '("raylib" "rlgl" "raygui"))
+	 (let* ((source (namestring (merge-pathnames (format nil "lib~A-adapter.~A.c" lib arch) path)))
+		(destdir (namestring (merge-pathnames "fasl/lib/" cl-user::*claw-raylib-dir*)))
+		(obj (namestring (merge-pathnames (format nil "lib~A-adapter.~a.o" lib arch) destdir)))
+		(dll (namestring (merge-pathnames (format nil "lib~A-adapter.~a.so" lib arch) destdir)))
+		(cc-cmd `("gcc" ,@(user::string-split-map #(#\Space) cflags)
+				"-c" "-o" ,obj ,source))
+		(ld-cmd `("gcc" ,@(user::string-split-map #(#\Space) ldflags)
+				"-shared" "-o" ,dll ,obj)))
+	 (write  cc-cmd)
+;;	 (uiop:run-program cc-cmd :error-output *error-output* :output *standard-output*)
+	 (terpri)
+	 (write ld-cmd)
+;;	 (uiop:run-program ld-cmd :error-output *error-output* :output *standard-output*)
+	 (terpri))))
+||#

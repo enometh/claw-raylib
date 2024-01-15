@@ -46,4 +46,11 @@
 (claw-raylib-defsystem "rlgl")
 (claw-raylib-defsystem "raygui"))
 
+#||
+#+sbcl
+(proclaim '(optimize (debug 0)))
 
+(mk:oos :claw-raylib.raylib :compile)
+(mk:oos :claw-raylib.rlgl :compile)
+(mk:oos :claw-raylib.raygui :compile)
+||#

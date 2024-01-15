@@ -1,17 +1,26 @@
 (in-package "CL-USER")
 
+#||
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(require 'claw-cxx)
+(cffi:load-foreign-library "libresect.so")
+||#
+
 (claw:defwrapper
     (:raylib
      (:headers "raylib.h" "raymath.h" "rcamera.h")
      (:includes #.*claw-raylib-inc*)
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
+#||
                ((:and :x86 :linux) "i686-pc-linux-gnu")
                ((:and :arm64 :linux) "aarch64-linux-gnu")
                ((:and :x86-64 :windows) "x86_64-pc-windows-gnu")
                ((:and :x86 :windows) "i686-pc-windows-gnu")
                ((:and :x86-64 :darwin) "x86_64-apple-darwin")
                ((:and :x86 :darwin) "i686-apple-darwin")
-               ((:and :arm64 :darwin) "aarch64-apple-darwin"))
+               ((:and :arm64 :darwin) "aarch64-apple-darwin")
+||#
+)
      (:persistent #:claw-raylib.raylib
       :asd-path
       #.(merge-pathnames "claw-raylib.raylib.asd"
@@ -66,13 +75,16 @@
      (:includes #.*claw-raylib-inc*)
      (:headers "rlgl.h")
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
+#||
                ((:and :x86 :linux) "i686-pc-linux-gnu")
                ((:and :arm64 :linux) "aarch64-linux-gnu")
                ((:and :x86-64 :windows) "x86_64-pc-windows-gnu")
                ((:and :x86 :windows) "i686-pc-windows-gnu")
                ((:and :x86-64 :darwin) "x86_64-apple-darwin")
                ((:and :x86 :darwin) "i686-apple-darwin")
-               ((:and :arm64 :darwin) "aarch64-apple-darwin"))
+               ((:and :arm64 :darwin) "aarch64-apple-darwin")
+||#
+      )
      (:persistent #:claw-raylib.rlgl
       :asd-path #.(merge-pathnames "claw-raylib.rlgl.asd"
 				   #+asdf
@@ -103,13 +115,16 @@
      (:defines "RAYGUI_IMPLEMENTATION" 1)
      (:includes #.*claw-raylib-inc*)
      (:targets ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
+#||
                ((:and :x86 :linux) "i686-pc-linux-gnu")
                ((:and :arm64 :linux) "aarch64-linux-gnu")
                ((:and :x86-64 :windows) "x86_64-pc-windows-gnu")
                ((:and :x86 :windows) "i686-pc-windows-gnu")
                ((:and :x86-64 :darwin) "x86_64-apple-darwin")
                ((:and :x86 :darwin) "i686-apple-darwin")
-               ((:and :arm64 :darwin) "aarch64-apple-darwin"))
+               ((:and :arm64 :darwin) "aarch64-apple-darwin")
+||#
+      )
      (:persistent #:claw-raylib.raygui
       :asd-path #.(merge-pathnames "claw-raylib.raygui.asd"
 				   #+asdf
@@ -134,6 +149,14 @@
 						   #-asdf
 						   *claw-raylib-dir*))
   :symbolicate-names (:in-pipeline (:by-removing-prefixes "Gui")))
+
+
+#||
+     (claw:generate-wrapper :raylib)
+     (claw:generate-wrapper :raygui)
+     (claw:generate-wrapper :rlgl)
+||#
+
 
 ;; Delete the generated adapters and run:
 ;;

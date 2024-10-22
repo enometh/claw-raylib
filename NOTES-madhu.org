@@ -1,0 +1,192 @@
+-*- Org -*-
+
+* claw-raylib with claw-cxx and mk-defystem
+** 1. prelims prereqs and 2. config
+#+begin_src lisp
+(in-package "CL-USER")
+
+;;; 1.1 load PREREQS:
+;;  enometh/cffi
+(require 'cffi)
+(progn
+(load "~/cl/extern/Github/mgl-pax/mgl-pax.system")
+(load "~/cl/extern/Github/named-readtables/named-readtables.system")
+;;; enometh/claw-cxx
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(require 'claw-cxx))
+(unless (cffi:find-foreign-library "libresect")
+  (cffi:load-foreign-library "libresect.so"))
+;; claw-raylib mk defsystem (no asdf)
+(load "~/cl/extern/Github/Authors/bohonghuang/claw-raylib/claw-raylib.system")
+
+;;; 1.2 set up local config
+;; local config is picked up from config-madhu.lisp which defines run
+;; time locations for generated files and for the external raylib dist
+;; to be used. this can be overridden before the file is even loaded,
+;; if needed.
+,#+nil
+(progn
+;; the generated bindings and fasl files go under *claw-raylib-dir*
+(defparameter *claw-raylib-dir* "/dev/shm/claw-cxx-raylib/")
+;; local location of the raylib dist, for use by libresect
+(defparameter *claw-raylib-inc* "/opt/raylib-5.0_linux_amd64/include")
+(defparameter *claw-raylib-lib* "/opt/raylib-5.0_linux_amd64/lib/"))
+
+;;; 2.1 define wrappers
+;; load the claw-raylib/gen defsystem, this loads "claw.lisp", which
+;; defines claw wrappers for the generated bindings. (this does not
+;; actually generate or load the bindings).
+(mk:oos :claw-raylib/gen :load :compile-during-load t)
+
+;;; 2.2 define defystems
+;; load the claw-raylib/defys defsystem. this loads
+;; claw-raylib-defsys.lisp, which defines system definitions for the 3
+;; systems that specify the locations of the generated bindings,
+;; i.e. (claw-raylib.raylib, claw-raylib.raygui claw-raylib.rlgl).
+(mk:oos :claw-raylib/defsys :load :compile-during-load nil)
+
+;;; 2.3 redefine cffi:defcfun
+;; load the claw-raylib/defcfun defsystem. this redefines cffi:defcfun
+;; to work amazing cffi-object magic, which is necessary before
+;; compiling or loading the wrapper
+(mk:oos :claw-raylib.defcfun :load :compile-during-load t)
+#+end_src
+
+** 3.1 load wrappers directly
+not used. skip to 3.2
+#+begin_src lisp
+(defun my-load-wrapper (name)
+  (claw.wrapper::call-with-wrapper-opts name
+                        (lambda (name opts bindings-table)
+			  (declare (ignorable name))
+			  (eval (claw.wrapper::expand-bindings opts bindings-table)))
+                        :always-generate nil))
+
+(my-load-wrapper :raylib)
+(my-load-wrapper :raygui)
+(my-load-wrapper :rlgl)
+
+;; bohonghuang track
+;; (pushnew :claw-regen-adapter *features*)
+;; (claw:load-wrapper :raylib)
+;; (claw:load-wrapper :raygui)
+;; (claw:load-wrapper :rlgl)
+#+end_src
+
+** 3.2 use wrappers via persisted bindings
+*** 3.2.1 manually generate persisted bindings (with defsystem)
+#+begin_src lisp
+;; make sure cffi-object is in use  (mk:load-system 'claw-raylib.defcfun)
+;; (macro-function 'cffi:defcfun)
+;;  => (MACRO-FUNCTION CFFI-OBJECT:DEFCOBJFUN)
+;; and not
+;; #<Compiled-function CFFI:DEFCFUN Macroexpander #x302002A27ACF>
+
+;; manually generate the wrappers
+(defun my-generate-wrapper (name &key always-generate)
+  ;; see claw:generate-wrapper
+  (claw.wrapper::call-with-wrapper-opts name #'claw.wrapper::persist-bindings-and-asd :always-generate always-generate))
+
+#||
+(delete-package "RAYLIB")
+(delete-package "RAYGUI")
+(delete-package "RLGL")
+||#
+
+#||
+rm -rfv /dev/shm/claw-cxx-raylib
+||#
+
+(my-generate-wrapper :raylib)
+(my-generate-wrapper :rlgl)
+(my-generate-wrapper :raygui)
+#+end_src
+
+*** 3.2.2 or use prebuild
+we can use the our defsystem files just checkout the =prebuild=
+branch at  =*claw-raylib-dir*= location
+#+begin_src lisp
+#||
+rm -rfv /dev/shm/claw-cxx-raylib
+git-new-workdir.sh . /dev/shm/claw-cxx-raylib prebuild
+||#
+;; ,*claw-raylib-dir* should have the pregenerated adapter .c files
+;; under lib/ and the pregenerated platform specific lisp bindings
+;; files under raylib/ raygui/ and rlgl/
+#+end_src
+
+** 3.3 load persisted bindings
+#+begin_src lisp
+;;; 3.3.1 compile and load persisted bindings.
+;; this also compiles the c-adapters the first time.
+
+#||
+;; when compiling persisted bindings for the first time load
+;; libraylib.so manually first so we can compile the generated
+;; bindings and adapters. (if the persisted bindings are already
+;; compiled via defsystem this step can be skipped as the dll gets
+;; loaded via claw-raylib.library)
+
+(make-package "CLAW-RAYLIB.LIBRARY")
+(cffi:define-foreign-library claw-raylib.library::libraylib
+  (:unix "libraylib.so" :search-path #.cl-user::*claw-raylib-lib*)
+  (t (:default "libraylib")))
+(cffi:use-foreign-library claw-raylib.library::libraylib)
+(assert (cffi:find-foreign-library "libraylib.so"))
+||#
+
+(mk:oos :claw-raylib.library :load :compile-during-load t)
+
+#||
+rm -rfv /dev/shm/claw-cxx-raylib/fasl
+||#
+
+;; NOTE:
+;; (macro-function 'cffi:defcfun)
+;; should be  #<FUNCTION (MACRO-FUNCTION CFFI-OBJECT:DEFCOBJFUN) {B800F77C2B}>
+
+(mk:oos 'claw-raylib.raylib :load :compile-during-load t)
+(mk:oos 'claw-raylib.rlgl :load :compile-during-load t)
+(mk:oos 'claw-raylib.raygui :load :compile-during-load t)
+
+(mk:oos 'claw-raylib.raylib.library :compile)
+(mk:oos 'claw-raylib.rlgl.library :compile)
+(mk:oos 'claw-raylib.raygui.library :compile)
+
+;; NOTE sbcl:
+;; sbcl needs --dynamic-sapce 10Gb or you visit the game over ldb.
+;; set (optimize debug 0) on sbcl
+;; sb-c::*policy*
+#+end_src
+
+** 4 load and use claw-raylib
+#+begin_src lisp
+#||
+;; (truename "/dev/shm/claw-cxx-raylib/fasl/lib/libraylib-adapter.x86_64-pc-linux-gnu.so")
+;; (truename "/dev/shm/claw-cxx-raylib/fasl/raylib/x86_64-pc-linux-gnu.lx64fsl")
+(find-package "RAYLIB")
+(find-package "RLGL")
+(find-package "RAYGUI")
+(apropos "MAKE-VECTOR2")
+(apropos "MATRIX-MULTIPLY")
+(find-package "RAYGUI")
+||#
+;; compile (and load ) claw-raylib
+(mk:oos :claw-raylib :load :compile-during-load t)
+
+;; compile examples
+(mk:oos :claw-raylib/examples :load :compile-during-load t)
+
+;; run examples
+
+;; NOTE: may have to force a recompile to make sure correct
+;; cffi-object defcfn macro redefinitions are picked up.
+;; (mk:mk-oos  :claw-raylib/examples)
+
+(cffi:find-foreign-library "rlgl")
+(claw-raylib.examples:2d-camera)
+(claw-raylib.examples:3d-camera-mode)
+(claw-raylib.examples:3d-picking)
+(claw-raylib.examples:controls-test-suite)
+(cffi:find-foreign-library "libraylib")
+#+end_src

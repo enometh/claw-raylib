@@ -1,0 +1,129 @@
+-*- Org -*-
+
+* claw-raylib with claw-cxx and mk-defystem
+** prelims  prereqs and config
+#+begin_src lisp
+(in-package "CL-USER")
+
+;;; load prereqs enometh/cffi
+(require 'cffi)
+(progn
+(load "~/cl/extern/Github/mgl-pax/mgl-pax.system")
+(load "~/cl/extern/Github/named-readtables/named-readtables.system")
+;;; enometh/claw-cxx
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(require 'claw-cxx))
+(unless (cffi:find-foreign-library "libresect")
+  (cffi:load-foreign-library "libresect.so"))
+(load "~/cl/extern/Github/Authors/bohonghuang/claw-raylib/claw-raylib.system")
+
+;; local config is picked up from madhu-config.lisp which defines run
+;; time locations for generated files and for the external raylib dist
+;; to be used.
+
+;; first adjust paths used by claw-raylib/gen i.e. claw.lisp (if needed)
+,#+nil
+(progn
+;; the generated bindings and fasl files go under *claw-raylib-dir*
+(defparameter *claw-raylib-dir* "/dev/shm/claw-cxx-raylib/")
+
+;; local location of the raylib dist, for use by libresect
+(defparameter *claw-raylib-inc* "/opt/raylib-5.0_linux_amd64/include")
+(defparameter *claw-raylib-lib* "/opt/raylib-5.0_linux_amd64/lib/"))
+
+#+end_src
+
+** bindings
+*** track1 - initial generation of bindings and defsystem definitions.
+
+#+begin_src lisp
+;; the claw-raylib/gen system loads claw-raylib/claw.lisp which
+;; defines claw wrappers for the generated bindings. (this does not
+;; actually generate or load the bindings).  it also defines the
+;; mk-defsystem system definitions for the generated bindings.
+
+;; load the claw-raylib/gen defsystem. this define the claw wrappers
+;; and also defines defsystem definitions to generate and load the
+;; bindings.
+(mk:oos :claw-raylib/gen :load :compile-during-load t)
+
+;; if generating bindings for the first time (track1) , we have to
+;; load libraylib.so manually so we can compile the generated bindings
+;; and adapters.  otherwise (track2) it gets loaded via
+;; claw-raylib/library.
+
+#||
+(make-package "CLAW-RAYLIB.LIBRARY")
+(cffi:define-foreign-library claw-raylib.library::libraylib
+  (:unix "libraylib.so" :search-path #.cl-user::*claw-raylib-lib*)
+  (t (:default "libraylib")))
+(cffi:use-foreign-library claw-raylib.library::libraylib)
+||#
+
+(assert (cffi:find-foreign-library "libraylib.so"))
+
+#||
+rm -rfv /dev/shm/claw-cxx-raylib
+||#
+
+;; manually generate the wrappers
+(defun my-generate-wrapper (name &key always-generate)
+  ;; see claw:generate-wrapper
+  (claw.wrapper::call-with-wrapper-opts name #'claw.wrapper::persist-bindings-and-asd :always-generate always-generate))
+
+(my-generate-wrapper :raylib)
+(my-generate-wrapper :raygui)
+(my-generate-wrapper :rlgl)
+
+;; load the claw-raylib/defcfun defsystem. this redefines cffi:defcfun
+;; to work amazing cffi-object magic, which is necessary before
+;; compiling or loading the wrapper
+(mk:oos :claw-raylib.defcfun :load :compile-during-load t)
+
+;; compile and load the generated bindings
+(mk:oos 'claw-raylib.raylib :load :compile-during-load t)
+(mk:oos 'claw-raylib.rlgl :load :compile-during-load t)
+(mk:oos 'claw-raylib.raygui :load :compile-during-load t)
+#+end_src
+
+
+*** track2 load pre-generated bindings
+#+begin_src lisp
+(mk:oos :claw-raylib.defcfun :load :compile-during-load t)
+(mk:oos :claw-raylib.library :load :compile-during-load t)
+
+(mk:oos :claw-raylib/defsys :load :compile-during-load nil)
+
+;; load  precompiled generated bindings
+(mk:oos 'claw-raylib.raylib :load :compile-during-load nil)
+(mk:oos 'claw-raylib.rlgl :load :compile-during-load nil)
+(mk:oos 'claw-raylib.raygui :load :compile-during-load nil)
+#+end_src
+
+
+**  load and use claw-raylib
+#+begin_src lisp
+;; (truename "/dev/shm/claw-cxx-raylib/fasl/lib/libraylib-adapter.x86_64-pc-linux-gnu.so")
+;; (truename "/dev/shm/claw-cxx-raylib/fasl/raylib/x86_64-pc-linux-gnu.lx64fsl")
+(find-package "RAYLIB")
+(find-package "RLGL")
+(find-package "RAYGUI")
+(apropos "MAKE-VECTOR2")
+(apropos "MATRIX-MULTIPLY")
+(find-package "RAYGUI")
+
+;; compile (and load ) claw-raylib
+(mk:oos :claw-raylib :load :compile-during-load t)
+
+
+;; compile examples
+(mk:oos :claw-raylib/examples :load :compile-during-load t)
+
+;; run examples
+(cffi:find-foreign-library "rlgl")
+(claw-raylib.examples:2d-camera)
+(claw-raylib.examples:3d-camera-mode)
+(claw-raylib.examples:3d-picking)
+(claw-raylib.examples:controls-test-suite)
+(cffi:find-foreign-library "libraylib")
+#+end_src

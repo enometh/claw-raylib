@@ -50,7 +50,7 @@
 #+sbcl
 (proclaim '(optimize (debug 0)))
 
-(mk:oos :claw-raylib.raylib :compile) :compile-during-load t)
+(mk:oos :claw-raylib.raylib :compile)
 (mk:oos :claw-raylib.rlgl :compile)
 (mk:oos :claw-raylib.raygui :compile)
 ||#

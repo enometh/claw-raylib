@@ -76,8 +76,10 @@ not used. skip to 3.2
 ** 3.2 use wrappers via persisted bindings
 *** 3.2.1 manually generate persisted bindings (with defsystem)
 #+begin_src lisp
-;; make sure cffi-object is in use
-;; (macro-function 'cffi:defcfun) =>
+;; make sure cffi-object is in use  (mk:load-system 'claw-raylib.defcfun)
+;; (macro-function 'cffi:defcfun)
+;;  => (MACRO-FUNCTION CFFI-OBJECT:DEFCOBJFUN)
+;; and not
 ;; #<Compiled-function CFFI:DEFCFUN Macroexpander #x302002A27ACF>
 
 ;; manually generate the wrappers
@@ -170,6 +172,11 @@ rm -rfv /dev/shm/claw-cxx-raylib/fasl
 (mk:oos :claw-raylib/examples :load :compile-during-load t)
 
 ;; run examples
+
+;; NOTE: may have to force a recompile to make sure correct
+;; cffi-object defcfn macro redefinitions are picked up.
+;; (mk:mk-oos  :claw-raylib/examples)
+
 (cffi:find-foreign-library "rlgl")
 (claw-raylib.examples:2d-camera)
 (claw-raylib.examples:3d-camera-mode)

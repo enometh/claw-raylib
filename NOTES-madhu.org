@@ -118,7 +118,10 @@ git-new-workdir.sh . /dev/shm/claw-cxx-raylib prebuild
 ** 3.3 load persisted bindings
 #+begin_src lisp
 ;;; 3.3.1 compile and load persisted bindings.
-;; this also compiles the c-adapters the first time.
+
+;; by default the mk defsystem load operation also compiles the files
+;; if necessary the first time.  this also compiles the c-adapters the
+;; first time. TODO c-adapter objects are not cleaned.
 
 #||
 ;; when compiling persisted bindings for the first time load
@@ -133,6 +136,9 @@ git-new-workdir.sh . /dev/shm/claw-cxx-raylib prebuild
   (t (:default "libraylib")))
 (cffi:use-foreign-library claw-raylib.library::libraylib)
 (assert (cffi:find-foreign-library "libraylib.so"))
+
+;; otherwise, if the adapters are already compiled, all libraries can
+;; be loaded at once by loading claw-raylib.library
 ||#
 
 (mk:oos :claw-raylib.library :load :compile-during-load t)
@@ -144,10 +150,17 @@ rm -rfv /dev/shm/claw-cxx-raylib/fasl
 ;; NOTE:
 ;; (macro-function 'cffi:defcfun)
 ;; should be  #<FUNCTION (MACRO-FUNCTION CFFI-OBJECT:DEFCOBJFUN) {B800F77C2B}>
+;;
+;; if cffi gets loaded (as part of mk:load-system)  it redefines cffi:defun
+;; so it is necessary to do a (mk:oos "claw-raylib.defcfun" :load)
+;; and recompile the persisted bindings
+;; (loop for x in '(claw-raylib.raylib claw-raylib.rlgl claw-raylib.raygui) do (mk:oos x  :clean))
+
 
 (mk:oos 'claw-raylib.raylib :load :compile-during-load t)
 (mk:oos 'claw-raylib.rlgl :load :compile-during-load t)
 (mk:oos 'claw-raylib.raygui :load :compile-during-load t)
+;;(mk:mk-oos 'claw-raylib.raygui)
 
 (mk:oos 'claw-raylib.raylib.library :compile)
 (mk:oos 'claw-raylib.rlgl.library :compile)
@@ -173,6 +186,10 @@ rm -rfv /dev/shm/claw-cxx-raylib/fasl
 ||#
 ;; compile (and load ) claw-raylib
 (mk:oos :claw-raylib :load :compile-during-load t)
+;;(mk:mk-oos :claw-raylib :load :compile-during-load t)
+
+;; (macro-function 'cffi:defcfun)
+
 
 ;; compile examples
 (mk:oos :claw-raylib/examples :load :compile-during-load t)

@@ -103,7 +103,7 @@ rm -rfv /dev/shm/claw-cxx-raylib
 #+end_src
 
 *** 3.2.2 or use prebuild
-we can use the our defsystem files just checkout the =prebuild=
+we can use our defsystem files. just checkout the =prebuild=
 branch at  =*claw-raylib-dir*= location
 #+begin_src lisp
 #||
